@@ -52,6 +52,6 @@ Thumbs.db
 # MycoPredict (tb_app)
 /tb_app/_pycache_/
 /tb_app/models/
-/tb_app/RESULTS/
+# /tb_app/RESULTS/
 
 
