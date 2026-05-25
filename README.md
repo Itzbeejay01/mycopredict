@@ -5,17 +5,41 @@ Unfavorable) using a hard-voting ensemble of Logistic Regression and Random
 Forest classifiers. SVM is included automatically if `models/svm_model.pkl`
 is present.
 
-## Run
+## Install requirements
 
 ```bash
-# 1. Train models (creates models/*.pkl)
-python tb_app/train_models.py
+# (recommended) create and activate a virtualenv
+python3 -m venv .venv
+source .venv/bin/activate
 
-# 2. Start the Flask app
+pip install -r requirements.txt
+```
+
+## Run
+
+> **Training is optional** if you already uploaded the trained model files.
+
+### Option A: use already-trained models (no retraining)
+
+```bash
 python tb_app/app.py
 ```
 
-The app auto-trains the models on first launch if `.pkl` files are missing.
+### Option B (optional): (re)train models
+
+```bash
+python tb_app/train_models.py
+python tb_app/app.py
+```
+
+The app checks for these required artifacts in `tb_app/models/`:
+
+- `RandomForest.pkl`
+- `XGBoost.pkl`
+- `LightGBM.pkl`
+- `columns.pkl`
+
+If any are missing, the app will auto-run the training script on first launch.
 
 ## Project layout
 
