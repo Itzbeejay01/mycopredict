@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TB Treatment Outcome Predictor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                50: "#eff6ff",
+                100: "#dbeafe",
+                200: "#bfdbfe",
+                300: "#93c5fd",
+                400: "#60a5fa",
+                500: "#3b82f6",
+                600: "#2563eb",
+                700: "#1d4ed8",
+                800: "#1e40af",
+                900: "#1e3a8a",
+              },
+              medical: {
+                50: "#f0fdfa",
+                100: "#ccfbf1",
+                200: "#99f6e4",
+                300: "#5eead4",
+                400: "#2dd4bf",
+                500: "#14b8a6",
+                600: "#0d9488",
+                700: "#0f766e",
+                800: "#115e59",
+                900: "#134e4a",
+              },
+              slate: {
+                850: "#1e293b",
+              },
+            },
+            fontFamily: {
+              sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+            },
+            animation: {
+              "fade-in": "fadeIn 0.6s ease-out",
+              "slide-up": "slideUp 0.5s ease-out",
+              "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+            },
+            keyframes: {
+              fadeIn: {
+                "0%": { opacity: "0" },
+                "100%": { opacity: "1" },
+              },
+              slideUp: {
+                "0%": { opacity: "0", transform: "translateY(20px)" },
+                "100%": { opacity: "1", transform: "translateY(0)" },
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      /* Glass morphism utilities */
+      .glass {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+
+      .glass-dark {
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+
+      /* Gradient text */
+      .text-gradient {
+        background: linear-gradient(135deg, #0d9488 0%, #2563eb 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      /* Hover lift effect */
+      .hover-lift {
+        transition:
+          transform 0.3s ease,
+          box-shadow 0.3s ease;
+      }
+      .hover-lift:hover {
+        transform: translateY(-4px);
+        box-shadow:
+          0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
+
+      /* Custom checkbox/radio styling if needed later */
+      .custom-focus:focus {
+        outline: none;
+        ring: 2px;
+        ring-color: #14b8a6;
+        ring-offset: 2px;
+      }
+    </style>
+  </head>
+  <body
+    class="font-sans antialiased bg-slate-50 text-slate-800 selection:bg-medical-200 selection:text-medical-900"
+  >
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full z-50 glass border-b border-slate-200/60">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+          <div class="flex items-center gap-3">
+            <div class="relative">
+              <div
+                class="absolute inset-0 bg-medical-400 rounded-lg blur-sm opacity-40 animate-pulse-slow"
+              ></div>
+              <div
+                class="relative w-8 h-8 bg-gradient-to-br from-medical-500 to-primary-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg"
+              >
+                +
+              </div>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-sm font-bold text-slate-900 leading-tight"
+                >TB Outcome Predictor</span
+              >
+              <span class="text-xs text-slate-500 font-medium"
+                >Clinical Decision Support</span
+              >
+            </div>
+          </div>
+          <div class="flex items-center gap-4">
+            <span
+              class="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-medical-100 text-medical-800 border border-medical-200"
+            >
+              v1.0
+            </span>
+            <a
+              href="{{ url_for('healthz') }}"
+              class="text-sm font-medium text-slate-600 hover:text-medical-600 transition-colors"
+            >
+              Health Check
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <!-- Hero Section -->
+      <div
+        class="grid lg:grid-cols-2 gap-12 items-center mb-20 animate-fade-in"
+      >
+        <div class="space-y-8">
+          <div
+            class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-medical-50 text-medical-700 text-sm font-medium border border-medical-100"
+          >
+            <span class="relative flex h-2 w-2">
+              <span
+                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-medical-400 opacity-75"
+              ></span>
+              <span
+                class="relative inline-flex rounded-full h-2 w-2 bg-medical-500"
+              ></span>
+            </span>
+            Ensemble ML Model Active
+          </div>
+
+          <h1
+            class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.1]"
+          >
+            Predict TB Treatment <br />
+            <span class="text-gradient">Outcomes with Confidence</span>
+          </h1>
+
+          <p class="text-lg sm:text-xl text-slate-600 leading-relaxed max-w-xl">
+            Enter available clinical parameters and let our ensemble machine
+            learning model estimate treatment outcomes with confidence scoring
+            and per-model voting breakdown.
+          </p>
+
+          <div class="flex flex-wrap gap-4">
+            <a
+              href="{{ url_for('predictor') }}"
+              class="group relative inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white transition-all duration-200 bg-gradient-to-r from-medical-600 to-primary-600 rounded-xl hover:from-medical-700 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-medical-500 shadow-lg shadow-medical-500/25 hover:shadow-xl hover:shadow-medical-500/30 hover:-translate-y-0.5"
+            >
+              <span>Start Prediction</span>
+              <svg
+                class="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
+              </svg>
+            </a>
+            <a
+              href="{{ url_for('healthz') }}"
+              class="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-slate-700 transition-all duration-200 bg-white border-2 border-slate-200 rounded-xl hover:border-medical-300 hover:text-medical-700 hover:bg-medical-50/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-400 hover:-translate-y-0.5 shadow-sm"
+            >
+              System Status
+            </a>
+          </div>
+
+          <div class="flex flex-wrap gap-3 pt-2">
+            <span
+              class="inline-flex items-center px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-sm font-medium text-slate-700 shadow-sm"
+            >
+              <svg
+                class="mr-1.5 h-4 w-4 text-medical-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              Form-based Input
+            </span>
+            <span
+              class="inline-flex items-center px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-sm font-medium text-slate-700 shadow-sm"
+            >
+              <svg
+                class="mr-1.5 h-4 w-4 text-primary-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
+              </svg>
+              Ensemble Voting
+            </span>
+            <span
+              class="inline-flex items-center px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-sm font-medium text-slate-700 shadow-sm"
+            >
+              <svg
+                class="mr-1.5 h-4 w-4 text-amber-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
+              Confidence Scoring
+            </span>
+          </div>
+        </div>
+
+        <!-- Results Preview Card -->
+        <div class="relative animate-slide-up">
+          <div
+            class="absolute -inset-1 bg-gradient-to-r from-medical-400 to-primary-400 rounded-2xl blur opacity-20"
+          ></div>
+          <div
+            class="relative bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden"
+          >
+            <div
+              class="bg-gradient-to-r from-slate-50 to-white px-6 py-4 border-b border-slate-100 flex items-center justify-between"
+            >
+              <h3 class="font-semibold text-slate-900">
+                Prediction Results Preview
+              </h3>
+              <span
+                class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded"
+                >Simulation</span
+              >
+            </div>
+            <div class="p-6 space-y-6">
+              <!-- Outcome -->
+              <div
+                class="flex items-center justify-between p-4 bg-medical-50 rounded-xl border border-medical-100"
+              >
+                <div>
+                  <p class="text-sm font-medium text-medical-800 mb-1">
+                    Final Prediction
+                  </p>
+                  <p class="text-2xl font-bold text-medical-700">Favorable</p>
+                </div>
+                <div
+                  class="h-12 w-12 bg-medical-200 rounded-full flex items-center justify-center"
+                >
+                  <svg
+                    class="h-6 w-6 text-medical-700"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Confidence -->
+              <div>
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-sm font-medium text-slate-700"
+                    >Confidence Score</span
+                  >
+                  <span class="text-sm font-bold text-slate-900">87.3%</span>
+                </div>
+                <div
+                  class="w-full bg-slate-100 rounded-full h-3 overflow-hidden"
+                >
+                  <div
+                    class="bg-gradient-to-r from-medical-500 to-primary-500 h-3 rounded-full"
+                    style="width: 87.3%"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Model Breakdown -->
+              <div class="space-y-3">
+                <p class="text-sm font-medium text-slate-700 mb-3">
+                  Model Voting Breakdown
+                </p>
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-slate-600">Random Forest</span>
+                    <span class="font-medium text-medical-700">Favorable</span>
+                  </div>
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-slate-600">XGBoost</span>
+                    <span class="font-medium text-medical-700">Favorable</span>
+                  </div>
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-slate-600">LightGBM </span>
+                    <span class="font-medium text-rose-600">Unfavorable</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pt-4 border-t border-slate-100">
+                <p class="text-xs text-slate-500 text-center italic">
+                  For educational and research use only
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- How It Works -->
+      <div class="mb-20">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl font-bold text-slate-900 mb-4">How It Works</h2>
+          <p class="text-lg text-slate-600 max-w-2xl mx-auto">
+            Simple three-step process to get reliable treatment outcome
+            predictions powered by ensemble machine learning.
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8">
+          <!-- Step 1 -->
+          <div class="relative group">
+            <div
+              class="absolute -inset-0.5 bg-gradient-to-r from-medical-400 to-primary-400 rounded-2xl opacity-0 group-hover:opacity-20 transition duration-500 blur"
+            ></div>
+            <div
+              class="relative bg-white rounded-2xl p-8 border border-slate-200 shadow-sm hover-lift"
+            >
+              <div
+                class="w-14 h-14 bg-gradient-to-br from-medical-100 to-medical-50 rounded-xl flex items-center justify-center mb-6 border border-medical-200"
+              >
+                <span class="text-2xl font-bold text-medical-700">1</span>
+              </div>
+              <h3 class="text-xl font-bold text-slate-900 mb-3">
+                Fill the Form
+              </h3>
+              <p class="text-slate-600 leading-relaxed">
+                Enter available clinical parameters. All fields are optional—use
+                sensible defaults where clinical data is unavailable.
+              </p>
+              <div
+                class="mt-6 flex items-center text-medical-600 font-medium text-sm group-hover:translate-x-1 transition-transform"
+              >
+                <span>Input Parameters</span>
+                <svg
+                  class="ml-1 w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="relative group">
+            <div
+              class="absolute -inset-0.5 bg-gradient-to-r from-primary-400 to-medical-400 rounded-2xl opacity-0 group-hover:opacity-20 transition duration-500 blur"
+            ></div>
+            <div
+              class="relative bg-white rounded-2xl p-8 border border-slate-200 shadow-sm hover-lift"
+            >
+              <div
+                class="w-14 h-14 bg-gradient-to-br from-primary-100 to-primary-50 rounded-xl flex items-center justify-center mb-6 border border-primary-200"
+              >
+                <span class="text-2xl font-bold text-primary-700">2</span>
+              </div>
+              <h3 class="text-xl font-bold text-slate-900 mb-3">
+                Run Prediction
+              </h3>
+              <p class="text-slate-600 leading-relaxed">
+                The ensemble aggregates votes from multiple trained models
+                including Random Forest, XGBoost, and LightGBM algorithms.
+              </p>
+              <div
+                class="mt-6 flex items-center text-primary-600 font-medium text-sm group-hover:translate-x-1 transition-transform"
+              >
+                <span>Ensemble Processing</span>
+                <svg
+                  class="ml-1 w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="relative group">
+            <div
+              class="absolute -inset-0.5 bg-gradient-to-r from-medical-400 to-primary-400 rounded-2xl opacity-0 group-hover:opacity-20 transition duration-500 blur"
+            ></div>
+            <div
+              class="relative bg-white rounded-2xl p-8 border border-slate-200 shadow-sm hover-lift"
+            >
+              <div
+                class="w-14 h-14 bg-gradient-to-br from-slate-100 to-slate-50 rounded-xl flex items-center justify-center mb-6 border border-slate-200"
+              >
+                <span class="text-2xl font-bold text-slate-700">3</span>
+              </div>
+              <h3 class="text-xl font-bold text-slate-900 mb-3">
+                Review Results
+              </h3>
+              <p class="text-slate-600 leading-relaxed">
+                See the final outcome, confidence percentage, and detailed
+                model-by-model voting breakdown for transparency.
+              </p>
+              <div
+                class="mt-6 flex items-center text-slate-600 font-medium text-sm group-hover:translate-x-1 transition-transform"
+              >
+                <span>Clinical Insights</span>
+                <svg
+                  class="ml-1 w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Features Grid -->
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
+        <div
+          class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:border-medical-300 transition-colors"
+        >
+          <div
+            class="w-10 h-10 bg-medical-100 rounded-lg flex items-center justify-center mb-4"
+          >
+            <svg
+              class="w-5 h-5 text-medical-700"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+          </div>
+          <h4 class="font-semibold text-slate-900 mb-2">Form-Based Input</h4>
+          <p class="text-sm text-slate-600">
+            Structured clinical data entry with optional fields and smart
+            defaults.
+          </p>
+        </div>
+
+        <div
+          class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:border-primary-300 transition-colors"
+        >
+          <div
+            class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mb-4"
+          >
+            <svg
+              class="w-5 h-5 text-primary-700"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+              />
+            </svg>
+          </div>
+          <h4 class="font-semibold text-slate-900 mb-2">Ensemble Voting</h4>
+          <p class="text-sm text-slate-600">
+            Multiple ML models vote to produce robust, consensus-driven
+            predictions.
+          </p>
+        </div>
+
+        <div
+          class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:border-amber-300 transition-colors"
+        >
+          <div
+            class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center mb-4"
+          >
+            <svg
+              class="w-5 h-5 text-amber-700"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 10V3L4 14h7v7l9-11h-7z"
+              />
+            </svg>
+          </div>
+          <h4 class="font-semibold text-slate-900 mb-2">Confidence Score</h4>
+          <p class="text-sm text-slate-600">
+            Percentage-based confidence reflecting model agreement and data
+            quality.
+          </p>
+        </div>
+
+        <div
+          class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm hover:border-rose-300 transition-colors"
+        >
+          <div
+            class="w-10 h-10 bg-rose-100 rounded-lg flex items-center justify-center mb-4"
+          >
+            <svg
+              class="w-5 h-5 text-rose-700"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+          </div>
+          <h4 class="font-semibold text-slate-900 mb-2">Voting Breakdown</h4>
+          <p class="text-sm text-slate-600">
+            Transparent per-model results showing how each algorithm voted.
+          </p>
+        </div>
+      </div>
+
+      <!-- CTA Section -->
+      <div
+        class="relative rounded-3xl overflow-hidden bg-slate-900 text-white p-8 sm:p-12 lg:p-16 text-center"
+      >
+        <div
+          class="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.05\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20"
+        ></div>
+        <div class="relative z-10 max-w-3xl mx-auto">
+          <h2 class="text-3xl sm:text-4xl font-bold mb-6">
+            Ready to Analyze Treatment Outcomes?
+          </h2>
+          <p class="text-lg text-slate-300 mb-8">
+            Start using the ensemble predictor now. All processing is done
+            securely with immediate results.
+          </p>
+          <a
+            href="{{ url_for('predictor') }}"
+            class="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-slate-900 transition-all duration-200 bg-white rounded-xl hover:bg-medical-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white focus:ring-offset-slate-900 shadow-lg hover:-translate-y-0.5"
+          >
+            Launch Predictor
+            <svg
+              class="ml-2 w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M14 5l7 7m0 0l-7 7m7-7H3"
+              />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div
+          class="flex flex-col sm:flex-row justify-between items-center gap-4"
+        >
+          <div class="flex items-center gap-2">
+            <div
+              class="w-6 h-6 bg-gradient-to-br from-medical-500 to-primary-600 rounded-md flex items-center justify-center text-white text-xs font-bold"
+            >
+              +
+            </div>
+            <span class="text-sm font-semibold text-slate-700"
+              >TB Outcome Predictor</span
+            >
+          </div>
+          <p class="text-sm text-slate-500 text-center sm:text-right">
+            This tool is
+            <span class="font-semibold text-rose-600">not a substitute</span>
+            for professional medical judgment.
+          </p>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

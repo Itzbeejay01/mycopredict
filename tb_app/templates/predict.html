@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TB Outcome Predictor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          sans-serif;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50 text-slate-900">
+    <header class="border-b border-slate-200 bg-white">
+      <div
+        class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4"
+      >
+        <div>
+          <a
+            href="{{ url_for('landing') }}"
+            class="text-lg font-bold text-slate-900"
+          >
+            TB Outcome Predictor
+          </a>
+          <p class="text-sm text-slate-500">
+            Clinical decision support for TB treatment outcomes.
+          </p>
+        </div>
+        <a
+          href="{{ url_for('landing') }}"
+          class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700"
+        >
+          Home
+        </a>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-4 py-8">
+      <section class="mb-8 rounded-2xl border border-blue-200 bg-blue-50 p-5">
+        <h1 class="text-2xl font-bold">Patient Assessment</h1>
+        <p class="mt-2 text-sm text-slate-600">
+          Enter the full clinical profile used by the deployed ensemble.
+          Predictions and confidence render on this page after submission.
+        </p>
+      </section>
+
+      {% if error %}
+      <section class="mb-8 rounded-2xl border border-red-200 bg-red-50 p-5">
+        <h2 class="text-lg font-semibold text-red-800">Prediction Error</h2>
+        <p class="mt-2 text-sm text-red-700">{{ error }}</p>
+      </section>
+      {% endif %} {% if result %} {% set good = result.final == 1 %}
+      <section
+        class="mb-8 rounded-2xl border p-6 {% if good %}border-green-200 bg-green-50{% else %}border-red-200 bg-red-50{% endif %}"
+      >
+        <div
+          class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between"
+        >
+          <div>
+            <p
+              class="text-sm font-semibold uppercase tracking-wide text-slate-500"
+            >
+              Latest Prediction
+            </p>
+            <h2 class="mt-2 text-3xl font-bold">{{ result.label }}</h2>
+            <p class="mt-2 text-sm text-slate-600">{{ result.risk_level }}</p>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2 lg:min-w-[24rem]">
+            <div class="rounded-xl border border-white bg-white/80 p-4">
+              <p
+                class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+              >
+                Confidence
+              </p>
+              <p class="mt-2 text-3xl font-bold">{{ result.confidence }}%</p>
+              <progress
+                class="mt-3 h-2 w-full"
+                max="100"
+                value="{{ result.confidence }}"
+              ></progress>
+            </div>
+            <div class="rounded-xl border border-white bg-white/80 p-4">
+              <p
+                class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+              >
+                Model Agreement
+              </p>
+              <p class="mt-2 text-3xl font-bold">{{ result.agreement }}%</p>
+              <p class="mt-2 text-sm text-slate-600">
+                {{ result.favorable_votes }} of {{ result.total_models }} models
+                voted favorable.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+          {% for name, vote in result.individual.items() %}
+          <div class="rounded-xl border border-white bg-white/80 p-4">
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="font-semibold">{{ name }}</h3>
+              <span
+                class="rounded-full px-3 py-1 text-xs font-semibold {% if vote == 1 %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}"
+              >
+                {{ "Favorable" if vote == 1 else "Unfavorable" }}
+              </span>
+            </div>
+            <p class="mt-3 text-sm text-slate-600">
+              Probability: {{ result.individual_proba[name] }}%
+            </p>
+            <p class="mt-1 text-xs text-slate-500">
+              Threshold: {{ result.threshold[name] }}
+            </p>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+
+      <form action="{{ url_for('predict') }}" method="POST" class="space-y-8">
+        <section
+          class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        >
+          <h2 class="text-lg font-bold">Demographics</h2>
+          <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <label
+                for="age"
+                class="mb-2 block text-sm font-medium text-slate-700"
+                >Age</label
+              >
+              <input
+                id="age"
+                name="age"
+                type="number"
+                min="0"
+                max="120"
+                value="{{ defaults.age }}"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              />
+            </div>
+            <div>
+              <label
+                for="sex"
+                class="mb-2 block text-sm font-medium text-slate-700"
+                >Sex</label
+              >
+              <select
+                id="sex"
+                name="sex"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              >
+                {% for opt in categorical_fields.sex[1] %}
+                <option
+                  value="{{ opt }}"
+                  {{ 'selected' if selected['sex'].get(opt) else '' }}
+                >
+                  {{ opt }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label
+                for="residence"
+                class="mb-2 block text-sm font-medium text-slate-700"
+                >Residence</label
+              >
+              <select
+                id="residence"
+                name="residence"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              >
+                {% for opt in categorical_fields.residence[1] %}
+                <option
+                  value="{{ opt }}"
+                  {{ 'selected' if selected['residence'].get(opt) else '' }}
+                >
+                  {{ opt }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label
+                for="age_category"
+                class="mb-2 block text-sm font-medium text-slate-700"
+                >Age Category</label
+              >
+              <select
+                id="age_category"
+                name="age_category"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              >
+                {% for opt in categorical_fields.age_category[1] %}
+                <option
+                  value="{{ opt }}"
+                  {{ 'selected' if selected['age_category'].get(opt) else '' }}
+                >
+                  {{ opt }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label
+                for="bmi"
+                class="mb-2 block text-sm font-medium text-slate-700"
+                >BMI</label
+              >
+              <input
+                id="bmi"
+                name="bmi"
+                type="number"
+                step="0.1"
+                value="{{ defaults.bmi }}"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        >
+          <h2 class="text-lg font-bold">Laboratory And History</h2>
+          <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <label
+                for="symptom_duration_weeks"
+                class="mb-2 block text-sm font-medium text-slate-700"
+                >Symptom Duration (weeks)</label
+              >
+              <input
+                id="symptom_duration_weeks"
+                name="symptom_duration_weeks"
+                type="number"
+                value="{{ defaults.symptom_duration_weeks }}"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              />
+            </div>
+            <div>
+              <label
+                for="hemoglobin_g_dl"
+                class="mb-2 block text-sm font-medium text-slate-700"
+                >Hemoglobin</label
+              >
+              <input
+                id="hemoglobin_g_dl"
+                name="hemoglobin_g_dl"
+                type="number"
+                step="0.1"
+                value="{{ defaults.hemoglobin_g_dl }}"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              />
+            </div>
+            <div>
+              <label
+                for="esr_mm_hr"
+                class="mb-2 block text-sm font-medium text-slate-700"
+                >ESR</label
+              >
+              <input
+                id="esr_mm_hr"
+                name="esr_mm_hr"
+                type="number"
+                step="0.1"
+                value="{{ defaults.esr_mm_hr }}"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              />
+            </div>
+            <div>
+              <label
+                for="hiv_status"
+                class="mb-2 block text-sm font-medium text-slate-700"
+                >HIV Status</label
+              >
+              <select
+                id="hiv_status"
+                name="hiv_status"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              >
+                {% for opt in categorical_fields.hiv_status[1] %}
+                <option
+                  value="{{ opt }}"
+                  {{ 'selected' if selected['hiv_status'].get(opt) else '' }}
+                >
+                  {{ opt }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label
+                for="cd4_count"
+                class="mb-2 block text-sm font-medium text-slate-700"
+                >CD4 Count</label
+              >
+              <input
+                id="cd4_count"
+                name="cd4_count"
+                type="number"
+                min="0"
+                value="{{ defaults.cd4_count }}"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              />
+            </div>
+            <div>
+              <label
+                for="tb_probability_score"
+                class="mb-2 block text-sm font-medium text-slate-700"
+                >TB Probability Score</label
+              >
+              <input
+                id="tb_probability_score"
+                name="tb_probability_score"
+                type="number"
+                step="0.01"
+                min="0"
+                max="1"
+                value="{{ defaults.tb_probability_score }}"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        >
+          <h2 class="text-lg font-bold">TB Disease Profile</h2>
+          <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <label
+                for="tb_status"
+                class="mb-2 block text-sm font-medium text-slate-700"
+                >TB Status</label
+              >
+              <select
+                id="tb_status"
+                name="tb_status"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              >
+                {% for opt in categorical_fields.tb_status[1] %}
+                <option
+                  value="{{ opt }}"
+                  {{ 'selected' if selected['tb_status'].get(opt) else '' }}
+                >
+                  {{ opt }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label
+                for="tb_type"
+                class="mb-2 block text-sm font-medium text-slate-700"
+                >TB Type</label
+              >
+              <select
+                id="tb_type"
+                name="tb_type"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              >
+                {% for opt in categorical_fields.tb_type[1] %}
+                <option
+                  value="{{ opt }}"
+                  {{ 'selected' if selected['tb_type'].get(opt) else '' }}
+                >
+                  {{ opt }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label
+                for="smear_status"
+                class="mb-2 block text-sm font-medium text-slate-700"
+                >Smear Status</label
+              >
+              <select
+                id="smear_status"
+                name="smear_status"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              >
+                {% for opt in categorical_fields.smear_status[1] %}
+                <option
+                  value="{{ opt }}"
+                  {{ 'selected' if selected['smear_status'].get(opt) else '' }}
+                >
+                  {{ opt }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label
+                for="xray_findings"
+                class="mb-2 block text-sm font-medium text-slate-700"
+                >X-Ray Findings</label
+              >
+              <select
+                id="xray_findings"
+                name="xray_findings"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+              >
+                {% for opt in categorical_fields.xray_findings[1] %}
+                <option
+                  value="{{ opt }}"
+                  {{ 'selected' if selected['xray_findings'].get(opt) else '' }}
+                >
+                  {{ opt }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        >
+          <h2 class="text-lg font-bold">Symptoms And Comorbidities</h2>
+          <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {% for field in boolean_fields %}
+            <label
+              class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+            >
+              <input
+                type="checkbox"
+                id="{{ field }}"
+                name="{{ field }}"
+                value="on"
+                {%
+                if
+                defaults.get(field)
+                %}checked{%
+                endif
+                %}
+                class="h-4 w-4 rounded border-slate-300"
+              />
+              <span class="text-sm font-medium text-slate-700"
+                >{{ field.replace('_', ' ').title() }}</span
+              >
+            </label>
+            {% endfor %}
+          </div>
+        </section>
+
+        <div class="flex flex-col gap-4 sm:flex-row">
+          <button
+            type="submit"
+            class="rounded-xl bg-slate-900 px-6 py-3 font-semibold text-white"
+          >
+            Predict Outcome
+          </button>
+          <button
+            type="reset"
+            class="rounded-xl border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700"
+          >
+            Reset Form
+          </button>
+        </div>
+      </form>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TB Prediction Result</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              medical: {
+                green: "#16a34a",
+                red: "#dc2626",
+                softGreen: "#dcfce7",
+                softRed: "#fee2e2",
+                dark: "#0f172a",
+              },
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+
+  <body class="bg-slate-50 font-sans text-slate-800">
+    <div class="max-w-6xl mx-auto px-6 py-10">
+      {% if error %}
+
+      <div
+        class="bg-red-50 border border-red-200 text-red-700 p-5 rounded-2xl shadow-sm"
+      >
+        <h2 class="font-semibold text-lg">Prediction Error</h2>
+        <p class="mt-2 text-sm">{{ error }}</p>
+      </div>
+
+      <a
+        href="{{ url_for('predictor') }}"
+        class="inline-block mt-6 px-5 py-3 bg-slate-900 text-white rounded-xl"
+      >
+        Back
+      </a>
+
+      {% else %} {% set good = result.final == 1 %}
+
+      <!-- HERO -->
+      <div
+        class="rounded-3xl p-8 shadow-xl border transition {% if good %} bg-green-50 border-green-200 {% else %} bg-red-50 border-red-200 {% endif %}"
+      >
+        <div class="flex flex-col items-center text-center">
+          <!-- ICON -->
+          <div
+            class="w-16 h-16 flex items-center justify-center rounded-full text-3xl shadow-sm {% if good %} bg-green-100 text-green-600 {% else %} bg-red-100 text-red-600 {% endif %}"
+          >
+            {% if good %}✓{% else %}!{% endif %}
+          </div>
+
+          <!-- LABEL -->
+          <h1 class="mt-4 text-2xl font-bold text-slate-900">
+            {{ result.label }}
+          </h1>
+
+          <p class="text-sm text-slate-600 mt-1">Clinical Outcome Prediction</p>
+
+          <!-- RISK -->
+          <div class="mt-4">
+            <span
+              class="px-4 py-1 rounded-full text-sm font-semibold {% if good %} bg-green-100 text-green-700 {% else %} bg-red-100 text-red-700 {% endif %}"
+            >
+              {{ result.risk_level }}
+            </span>
+          </div>
+
+          <!-- CONFIDENCE BAR -->
+          <div class="w-full max-w-md mt-6">
+            <div class="flex justify-between text-xs text-slate-500 mb-1">
+              <span>Model Confidence</span>
+              <span>{{ result.confidence }}%</span>
+            </div>
+
+            <div
+              class="w-full h-3 bg-white rounded-full overflow-hidden border"
+            >
+              <div
+                class="h-3 transition-all duration-500 {% if good %} bg-green-500 {% else %} bg-red-500 {% endif %}"
+                style="width: {{ result.confidence }}%"
+              ></div>
+            </div>
+
+            <p class="text-xs text-slate-500 mt-2">
+              {{ result.favorable_votes }} / {{ result.total_models }} models
+              agree
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- GRID -->
+      <div class="grid md:grid-cols-2 gap-6 mt-8">
+        <!-- MODEL PANEL -->
+        <div class="bg-white rounded-2xl shadow-sm border p-6">
+          <h2 class="text-lg font-semibold text-slate-900 mb-4">
+            Ensemble Model Votes
+          </h2>
+
+          <div class="space-y-3">
+            {% for name, vote in result.individual.items() %}
+            <div
+              class="flex items-center justify-between p-3 rounded-xl border bg-slate-50"
+            >
+              <span class="text-sm font-medium text-slate-700">
+                {{ name }}
+              </span>
+
+              <span
+                class="text-xs font-semibold px-3 py-1 rounded-full {% if vote == 1 %} bg-green-100 text-green-700 {% else %} bg-red-100 text-red-700 {% endif %}"
+              >
+                {{ "Favorable" if vote == 1 else "Unfavorable" }}
+              </span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- INPUT PANEL -->
+        <div class="bg-white rounded-2xl shadow-sm border p-6">
+          <h2 class="text-lg font-semibold text-slate-900 mb-4">
+            Patient Profile
+          </h2>
+
+          <div class="space-y-2 text-sm">
+            {% for k, v in payload.items() %}
+            <div class="flex justify-between border-b border-slate-100 py-2">
+              <span class="text-slate-500">
+                {{ k.replace('_', ' ').title() }}
+              </span>
+
+              <span class="font-medium text-slate-800"> {{ v }} </span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTION -->
+      <div class="mt-10 flex justify-center">
+        <a
+          href="{{ url_for('predictor') }}"
+          class="px-6 py-3 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition"
+        >
+          New Prediction
+        </a>
+      </div>
+
+      {% endif %}
+    </div>
+  </body>
+</html>
